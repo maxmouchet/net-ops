@@ -13,13 +13,16 @@ require 'logger'
 INT_STATUS_REGEX = /^(Fa|Gi)(\d+\/\d+(\/\d+)?)\s+(.+)?\s(connected|notconnect|disabled|err-disabled)\s+(\w+|\d+)\s+(auto|a-full)\s+(auto|a-1000)\s(.+)/
 
 # [Array] containings hosts to connect to.
+# hosts = ARGV
+# hosts = File.read('hosts.txt').lines
 hosts = %w(10.0.0.1)
 
 options     = { timeout: 10, prompt: /.+#/ }
 credentials = { username: '', password: '' }
 
 @logger = Logger.new(STDOUT)
-@logger.level = Logger::DEBUG
+@logger.level = Logger::INFO
+# @logger.level = Logger::DEBUG
 
 # Return `true` if the interface need to be reseted.
 def need_reset?(int)
@@ -70,12 +73,18 @@ def exec_command(session, command)
 end
 
 # Save the configuration to startup-config.
+# I don't use copy run start because it asks for confirmation.
 #
 # @param session [Net::Telnet] the session to the switch.
 def write!(session)
-  session.cmd{'copy run start'}
+  session.cmd{'write'}
 end
 
+# Open an SSH session to the specified host using net/ssh/telnet.
+#
+# @param host [String] the destination host.
+# @param options [Hash]
+# @param credentials [Hash] credentials to use to connect.
 def open_ssh_session(host, options, credentials)
   session = nil
 
@@ -86,13 +95,20 @@ def open_ssh_session(host, options, credentials)
 
 rescue Errno::ECONNREFUSED => e
   @logger.error e.class
+  session = nil
 
 rescue Net::SSH::AuthenticationFailed => e
   @logger.error e.class
+  session = nil
 
 return session
 end
 
+# Open a Telnet session to the specified host using net/ssh.
+#
+# @param host [String] the destination host.
+# @param options [Hash]
+# @param credentials [Hash] credentials to use to connect.
 def open_telnet_session(host, options, credentials)
   session = nil
 
@@ -105,6 +121,7 @@ def open_telnet_session(host, options, credentials)
 
 rescue Errno::ECONNREFUSED => e
   @logger.error e.class
+  session = nil
 
 return session
 end
