@@ -4,139 +4,76 @@
 # I use it in production but if I were you I won't.
 # Use at your own risks.
 
-require 'rubygems'
-require 'net/telnet'
-require 'net/ssh/telnet'
+require './helpers'
 require 'logger'
 
-# [Regex] for parsing `show interface statuts` output.
-INT_STATUS_REGEX = /^(Fa|Gi)(\d+\/\d+(\/\d+)?)\s+(.+)?\s(connected|notconnect|disabled|err-disabled)\s+(\w+|\d+)\s+(auto|a-full)\s+(auto|a-1000)\s(.+)/
+module QScripts
 
-# [Array] containings hosts to connect to.
-# hosts = ARGV
-# hosts = File.read('hosts.txt').lines
-hosts = %w(10.0.0.1)
+  #
+  module ResetErrDisabled
+    include QScripts::Helpers
 
-options     = { timeout: 10, prompt: /.+#/ }
-credentials = { username: '', password: '' }
+    # Array containings hosts to connect to.
+    # hosts = ARGV
+    # hosts = File.read('hosts.txt').lines
+    hosts = %w(10.0.0.1)
 
-@logger = Logger.new(STDOUT)
-@logger.level = Logger::INFO
-# @logger.level = Logger::DEBUG
+    options     = { timeout: 10, prompt: /.+#/ }
+    credentials = { username: '', password: '' }
 
-# Return `true` if the interface need to be reseted.
-def need_reset?(int)
-  int[5] == 'err-disabled'
-end
+    @parser = Parser.new('regexs.yml')
 
-# Reset the interface.
-#
-# @param session [Net::Telnet] the session to the switch.
-# @param interface [Array] the interface to reset.
-def reset!(session, interface)
-  interface_name = interface[1] + interface[2]
+    @logger = Logger.new(STDOUT)
+    @logger.level = Logger::INFO
+    # @logger.level = Logger::DEBUG
 
-  @logger.info("Reseting #{ interface_name } on #{ session.host }")
+    # Reset the interface.
+    #
+    # @param session [Net::Telnet] the session to the switch.
+    # @param interface [Array] the interface to reset.
+    def reset!(session, interface)
+      interface_name = interface[1] + interface[2]
 
-  session.cmd{'configuraton terminal'}
-  session.cmd("interface #{ interface_name }")
-  session.cmd('shutdown')
-  session.cmd('no shutdown')
-  session.cmd{'end'}
-end
+      @logger.info("Reseting #{ interface_name } on #{ session.host }")
 
-# Return the interfaces of a switch and their status.
-#
-# @param session [Net::Telnet] the session to the switch.
-# @return [Array] the interfaces.
-def get_interfaces(session)
-  output = exec_command(session, 'show interface status')
-  parse_interfaces(output)
-end
+      session.cmd{'configuraton terminal'}
+      session.cmd("interface #{ interface_name }")
+      session.cmd('shutdown')
+      session.cmd('no shutdown')
+      session.cmd{'end'}
+    end
 
-# Convert `show interface status` output to an array of interfaces.
-#
-# @return [Array] the interfaces.
-def parse_interfaces(output)
-  output.lines.select { |l| INT_STATUS_REGEX.match(l) != nil }.map! { |l| l = INT_STATUS_REGEX.match(l) }
-end
+    # Return the interfaces of a switch and their status.
+    #
+    # @param session [Net::Telnet] the session to the switch.
+    # @return [Array] the interfaces.
+    def get_err_interfaces(session, parser)
+      output = session.exec_command('show interfaces status err-disabled')
+      parser.parse('interfaces status', output)
+    end
 
-# Execute a command on a device.
-#
-# @param session [Net::Telnet] the session to the switch.
-# @param command [String] the command to execute.
-# @return [String] the command result.
-def exec_command(session, command)
-  output = ''
-  session.cmd(command) { |c| output += c }
-  output
-end
+    # Save the configuration to startup-config.
+    # I don't use copy run start because it asks for confirmation.
+    #
+    # @param session [Net::Telnet] the session to the switch.
+    def write!(session)
+      session.cmd{'write'}
+    end
 
-# Save the configuration to startup-config.
-# I don't use copy run start because it asks for confirmation.
-#
-# @param session [Net::Telnet] the session to the switch.
-def write!(session)
-  session.cmd{'write'}
-end
+    hosts.each do |host|
+      @logger.info "Connecting to #{ host }"
 
-# Open an SSH session to the specified host using net/ssh/telnet.
-#
-# @param host [String] the destination host.
-# @param options [Hash]
-# @param credentials [Hash] credentials to use to connect.
-def open_ssh_session(host, options, credentials)
-  session = nil
+      session = Session.new(host, options)
+      session.open(credentials)
 
-  ssh = Net::SSH.start(host, credentials[:username], :password => credentials[:password])
-  session = Net::SSH::Telnet.new('Session' => ssh,
-                                 'Timeout' => options[:timeout],
-                                 'Prompt'  => options[:prompt])
+      fail 'No transport available' if session == nil
 
-rescue Errno::ECONNREFUSED => e
-  @logger.error e.class
-  session = nil
+      get_err_interfaces(session, @parser).each { |int| reset!(session, int) }
 
-rescue Net::SSH::AuthenticationFailed => e
-  @logger.error e.class
-  session = nil
+      write!(session)
 
-return session
-end
+      session.close
+    end
 
-# Open a Telnet session to the specified host using net/ssh.
-#
-# @param host [String] the destination host.
-# @param options [Hash]
-# @param credentials [Hash] credentials to use to connect.
-def open_telnet_session(host, options, credentials)
-  session = nil
-
-  session = Net::Telnet.new('Host' => host,
-                            'Timeout' => options[:timeout],
-                            'Prompt'  => options[:prompt])
-
-  session.cmd(credentials[:username])
-  session.cmd(credentials[:password])
-
-rescue Errno::ECONNREFUSED => e
-  @logger.error e.class
-  session = nil
-
-return session
-end
-
-hosts.each do |host|
-  @logger.info "Connecting to #{ host }"
-
-  session ||= open_ssh_session(host, options, credentials)
-  session ||= open_telnet_session(host, options, credentials)
-
-  fail 'No transport available' if session == nil
-
-  get_interfaces(session).each { |int| reset!(int) if need_reset?(int) }
-
-  write!(session)
-
-  session.close
+  end
 end

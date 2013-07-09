@@ -1,0 +1,5 @@
+Switch# show interfaces status
+Port    Name               Status     Vlan       Duplex Speed Type
+Te1/1              ssss        connected  1          full   10G   10GBase-LR
+Te1/2                      connected  vl-err-dis full   10G   10GBase-LR
+Switch#

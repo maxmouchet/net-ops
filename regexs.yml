@@ -1,0 +1,12 @@
+cisco:
+  interfaces:
+    status:
+      regex: >
+        (?<short_type>Fa|Gi|Te)
+        (?<port_number>\d+\/\d+(\/\d+)?)\s+
+        (?<description>.+)?\s+
+        (?<status>connected|notconnect|disabled|err-disabled)\s+
+        (?<vlan>\w+|\d+)\s+
+        (?<duplex>auto|(a-)?full)\s+
+        (?<speed>auto|a-1000|10G)\s+
+        (?<type>.+)
