@@ -23,6 +23,13 @@ options = { timeout: 10, prompt: /.+(#|>)/ }
 @session = Net::Ops::Session.new(host, options)
 ```
 
+```ruby
+begin @session.open({ username: '', password: '' })
+rescue Net::Ops::TransportUnavailable => e
+  error e.message
+end
+```
+
 ### Executing commands
 
 ```ruby
