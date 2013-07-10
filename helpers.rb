@@ -5,10 +5,9 @@ require 'net/telnet'
 require 'net/ssh/telnet'
 require 'yaml'
 
-module QScripts
+module Net
 
-  #
-  module Helpers
+  module Ops
 
     #
     class Session
@@ -16,20 +15,20 @@ module QScripts
       def initialize(host, options, logger = nil)
         @host = host
         @options = options
-        
-        @@logger = logger
-        @@logger ||= Logger.new(STDOUT)
-        @@logger.level = Logger::DEBUG
+
+
       end
+
+
 
       def open(credentials)
         @@logger.debug(@host) { "Opening session as #{credentials[:username]}" }
-        
+
         @session ||= Session.open_ssh_session(@host, @options, credentials)
         @session ||= Session.open_telnet_session(@host, @options, credentials)
-        
+
         fail 'No transport available' unless @session
-        
+
         @session.cmd('') do |c|
           if c.include?('>')
             @@logger.debug(@host) { 'User mode prompt (>) detected' }
@@ -39,7 +38,7 @@ module QScripts
           end
         end
       end
-      
+
       def close
         @@logger.debug(@host) { 'Closing session' }
       end
@@ -53,70 +52,70 @@ module QScripts
         @@logger.debug(@host) { "Executing #{command}" }
 
         output = ''
-        
+
         t1 = Time.now
         @session.cmd(command) { |c| output += c }
         t2 = Time.now
-        
+
         exec_time = Utils.time_diff_m(t1, t2)
         @@logger.debug(@host) { "Command took #{exec_time}ms" }
-        
+
         if exec_time > 700
           @@logger.warn(@host) { "High latency detected (#{exec_time}ms)" }
         end
-        
+
         output
       end
-      
+
       def exec_command(command)
         ensure_mode(:privileged)
         self.run_command(command)
       end
-      
+
       def conf_command(command)
         @@logger.debug(@host) { 'Switching to configure terminal mode' }
         self.run_command('configure terminal')
         self.run_command(command)
       end
-      
+
       def write!
         self.exec_command('write')
       end
-      
+
       def get(item)
         ensure_mode(:privileged)
         self.run_command("show #{ item }")
       end
-      
+
       def set(item, value)
         self.run_command("#{ item } #{ value }")
       end
-      
+
       def enable(item)
         self.run_command(item)
       end
-      
+
       def disable(item)
         self.run_command("no #{ item }")
       end
-      
+
       def ensure_mode(mode)
         case mode
-        
+
         when :privileged
           self.run_command('end')
-        
+
         when :configuration
           self.run_command('configure terminal')
-          
+
         end
       end
-      
+
       def privileged(&block)
         ensure_mode(:privileged)
         instance_eval(&block)
       end
-      
+
       def configuration(options = nil, &block)
         ensure_mode(:configuration)
         instance_eval(&block)
@@ -145,7 +144,7 @@ module QScripts
       rescue Net::SSH::AuthenticationFailed => e
         @@logger.error(host) { e.class }
         session = nil
-        
+
       rescue Exception => e
         @@logger.error(host) { e.class }
 
@@ -166,19 +165,19 @@ module QScripts
 
         session.cmd('String' => credentials[:username],
                     'Match'  => /.+assword.+/)
-                    
+
         session.cmd(credentials[:password])
-        
+
         return session
 
       rescue Errno::ECONNREFUSED => e
         @@logger.error(host) { e.class }
         session = nil
-        
+
       rescue Net::OpenTimeout => e
         @@logger.error(host) { e.class }
         session = nil
-        
+
       rescue Exception => e
         @@logger.error(host) { e.class }
         session = nil
@@ -219,14 +218,14 @@ module QScripts
       end
 
     end
-    
+
     #
     class Utils
-      
+
       def self.time_diff_m(start, finish)
         (finish - start) * 1000.0
       end
-      
+
     end
 
   end
