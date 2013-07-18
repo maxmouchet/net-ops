@@ -1,8 +1,17 @@
 require './downcase_hostname_task'
 
-host = 'sa-qcmtlv-11-09'
-options     = { timeout: 10, prompt: /.+(#|>)/ }
+hosts = %w()
+
+options     = { timeout: 30, prompt: /.+(#|>)/ }
 credentials = { username: '', password: '' }
 
-t = DowncaseHostnameTask.new(host, options, credentials)
-t.work
+pool = Thread.pool(10)
+
+hosts.each do |host|
+  pool.process do
+    t = DowncaseHostnameTask.new(host, options, credentials)
+    t.work
+  end
+end
+
+pool.shutdown
