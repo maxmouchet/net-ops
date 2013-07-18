@@ -1,16 +1,18 @@
 require 'yaml'
-require 'net/telnet'
-require 'net/ssh/telnet'
+require 'logger'
+require 'thread/pool'
 
-require './transport_unavailable'
+Dir['../lib/net/transport/*.rb'].each { |file| require file }
 
 module Net
-
   module Ops
-
+  
     # Provides a DSL for interacting with Cisco switches and routers.
     class Session
-
+      
+      attr_reader :transport
+      attr_reader :transports
+      
       # Initialize a new session.
       #
       # @param [String] host the target host.
@@ -22,10 +24,16 @@ module Net
       # @param [Logger] logger the logger to use.
       #
       # @return [Session] the new session.
-      def initialize(host, options, logger = nil)
+      def initialize(host, options = { timeout: 10, prompt: /.+(#|>)/ }, logger = nil)
         @host    = host
         @options = options
+        @transports = []        
+        
         setup_logger(logger)
+        
+        Net::Ops::Transport.constants.each do |c| 
+          register_transport(c) if Class === Net::Ops::Transport.const_get(c)
+        end
       end
 
       # Open the session to the device.
@@ -40,11 +48,12 @@ module Net
         @credentials = credentials
 
         @logger.debug(@host) { "Opening session as #{ credentials[:username] }" }
+        
+        @transports.each do |transport|
+          @transport ||= transport.open(@host, @options, credentials)
+        end
 
-        @session ||= Session.open_ssh_session    @host, @options, credentials
-        @session ||= Session.open_telnet_session @host, @options, credentials
-
-        fail Net::Ops::TransportUnavailable unless @session
+        fail Net::Ops::TransportUnavailable unless @transport
       end
 
       # Close the session to the device.
@@ -52,7 +61,8 @@ module Net
       # @return [void]
       def close
         @logger.debug(@host) { 'Closing session' }
-        @session.close
+        @transport.close
+        @transport = nil
       end
 
       # Measure the latency.
@@ -60,10 +70,10 @@ module Net
       # @return [Integer] the time to run and retrieve the output of a command in milliseconds.
       def latency
         t1 = Time.now
-        @session.cmd('')
+        @transport.cmd('')
         t2 = Time.now
 
-        Utils.time_diff_m(t1, t2)
+        (t2 - t1) * 1000.0
       end
 
       # Send the specified command to the device and wait for the output.
@@ -71,14 +81,18 @@ module Net
       # @param  [String] command the command to run.
       # @return [String] the output of the command.
       def run(command)
-        @logger.debug(@host) { "Executing #{ command }" }
+        @logger.debug("#{ @host } (#{ get_mode })") { "Executing #{ command }" }
 
         output = ''
-        @session.cmd(command) { |c| output += c }
+        @transport.cmd(command) { |c| output += c }
 
+        @logger.debug("#{ @host } (#{ get_mode })") { output }
+        # @logger.warn(@host) { 'Net::Ops::IOSInvalidInput'; puts output } if /nvalid input detected/.match(output)
+        fail Net::Ops::IOSInvalidInput if /nvalid input detected/.match(output)
+        
         output
       end
-
+      
       # Get the specified item on the device.
       # Equivalent to the Cisco show command.
       #
@@ -96,7 +110,7 @@ module Net
       def set(item, value)
         run("#{ item } #{ value }")
       end
-
+      
       # Enable the specified item on the device.
       #
       # @param item [String] the item to enable.
@@ -112,6 +126,17 @@ module Net
       # @return [String] the eventual output of the command.
       def disable(item)
         run("no #{ item }")
+      end
+      
+      def zeroize(item)
+        @logger.debug(@host) { "Executing #{ item } zeroize" }
+      
+        @transport.cmd('String' => "#{ item } zeroize", 'Match' => /.+/)
+        @transport.cmd('yes')
+      end
+      
+      def generate(item, options)
+        run("#{ item } generate #{ options }")
       end
 
       # Run the specified command in the privileged mode on the device.
@@ -159,69 +184,41 @@ module Net
 
         write! if options == :enforce_save
       end
-
-      # Open an SSH session to the specified host using net/ssh/telnet.
-      #
-      # @param host [String] the destination host.
-      # @param options [Hash]
-      # @param credentials [Hash] credentials to use to connect.
-      def self.open_ssh_session(host, options, credentials)
-        session = nil
-
-        ssh = Net::SSH.start(host, credentials[:username], :password => credentials[:password])
-        session = Net::SSH::Telnet.new('Session' => ssh,
-                                       'Timeout' => options[:timeout],
-                                       'Prompt'  => options[:prompt])
-
-      rescue Errno::ECONNREFUSED => e
-        @@logger.error(host) { e.class }
-        session = nil
-
-      rescue Net::SSH::AuthenticationFailed => e
-        @@logger.error(host) { e.class }
-        session = nil
-
-      rescue Exception => e
-        @@logger.error(host) { e.class }
-
-      return session
+      
+      def interface(interface, &block)
+        ensure_mode(:configuration)
+        
+        run("interface #{ interface }")
+        instance_eval(&block)
       end
-
-      # Open a Telnet session to the specified host using net/ssh.
-      #
-      # @param host [String] the destination host.
-      # @param options [Hash]
-      # @param credentials [Hash] credentials to use to connect.
-      def self.open_telnet_session(host, options, credentials)
-        session = nil
-
-        session = Net::Telnet.new('Host' => host,
-                                  'Timeout' => options[:timeout],
-                                  'Prompt'  => options[:prompt])
-
-        session.cmd('String' => credentials[:username],
-                    'Match'  => /.+assword.+/)
-
-        session.cmd(credentials[:password])
-
-        return session
-
-      rescue Errno::ECONNREFUSED => e
-        @@logger.error(host) { e.class }
-        session = nil
-
-      rescue Net::OpenTimeout => e
-        @@logger.error(host) { e.class }
-        session = nil
-
-      rescue Exception => e
-        @@logger.error(host) { e.class }
-        session = nil
-
-      return session
+      
+      def interfaces(interfaces = /.+/, &block)
+        ints = privileged do
+          get('interfaces status').select do |int| 
+            interfaces.match("#{ int['short_type'] }#{ int['port_number'] }")
+          end
+        end
+        
+        ints.each do |int|
+          interface("#{ int['short_type'] }#{ int['port_number'] }") do
+            instance_eval(&block)
+          end
+        end
+      end
+      
+      def lines(lines, &block)
+        ensure_mode(:configuration)
+        
+        run("line #{ lines }")
+        instance_eval(&block)
       end
 
       private
+      
+      def register_transport(klass)
+        @logger.debug(@host) { "Registering transport #{ klass }" }
+        @transports << Net::Ops::Transport.const_get(klass)
+      end
 
       # Create a default logger if none is specified.
       #
@@ -232,7 +229,8 @@ module Net
         @logger = logger
 
         # Otherwise we create a new one.
-        logger = Logger.new(STDOUT)
+        # logger = Logger.new(STDOUT)
+        logger = Logger.new('log.log')
         logger.level = Logger::DEBUG
         @logger ||= logger
       end
@@ -241,7 +239,10 @@ module Net
       #
       # @return [Symbol] the current command mode.
       def get_mode
-        match = @session.cmd('') { |c| /.+(?<text>\([\w-]+\))?(?<char>#|>)/.match(c) }
+        prompt = ''
+        @transport.cmd('') { |c| prompt += c }        
+        match = /(?<hostname>[^\(-\)]+)(\((?<text>[\w\-]+)\))?(?<char>#|>)/.match(prompt)
+        
         mode  = nil
 
         if match && match['char']
@@ -251,11 +252,12 @@ module Net
                  when '#' then :privileged
                  end
 
-        elsif match && match['text']
+        end         
+        
+        if match && match['text']
           mode = match['text'].to_sym
-
         end
-
+        
         mode
       end
 
@@ -305,11 +307,78 @@ module Net
       # @param  [String] the enable password.
       # @return [void]
       def enable_privileged(password)
-        @session.cmd('String' => 'enable', 'Match' => /.+assword.+/)
-        @session.cmd(password)
+        @transport.cmd('String' => 'enable', 'Match' => /.+assword.+/)
+        @transport.cmd(password)
       end
 
     end
+    
+    class Parser
+
+      def initialize(file)
+        @regexs = YAML.load_file(file)
+      end
+
+      def parse(command, output)
+        results = []        
+        path    = explore_tree(command.split(/ /))
+        
+        if path.has_key?('regex')
+          regex = Regexp.new(path.fetch('regex').delete(' '))
+          
+          output.each_line do |line|
+            results << regex.match(line) if regex.match(line)
+          end
+          
+        else results = output
+        end
+
+        results
+      end
+
+      private
+
+      def explore_tree(path)
+        level = @regexs['cisco']
+
+        path.each { |p| level[p] ? level = level[p] : break }
+        
+        level
+      end
+
+    end
+    
+    class Task
+      include Net::Ops
+
+      def initialize(id)
+        @id = id
+        
+        @logger = Logger.new(STDOUT)
+        @logger.level = Logger::INFO
+      end
+      
+      def log(severity, message)
+        @logger.add(severity, message, @id)
+      end
+      
+      def info(message)
+        log(Logger::INFO, message)
+      end
+      
+      def warn(message)
+        log(Logger::WARN, message)
+      end
+      
+      def error(message)
+        log(Logger::ERROR, message)
+      end
+
+    end
+    
+    #
+    class TransportUnavailable < Exception; end
+    class IOSInvalidInput < Exception; end
 
   end
 end
