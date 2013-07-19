@@ -6,13 +6,13 @@ Dir['../lib/net/transport/*.rb'].each { |file| require file }
 
 module Net
   module Ops
-  
+
     # Provides a DSL for interacting with Cisco switches and routers.
     class Session
-      
+
       attr_reader :transport
       attr_reader :transports
-      
+
       # Initialize a new session.
       #
       # @param [String] host the target host.
@@ -27,11 +27,11 @@ module Net
       def initialize(host, options = { timeout: 10, prompt: /.+(#|>)/ }, logger = nil)
         @host    = host
         @options = options
-        @transports = []        
-        
+        @transports = []
+
         setup_logger(logger)
-        
-        Net::Ops::Transport.constants.each do |c| 
+
+        Net::Ops::Transport.constants.each do |c|
           register_transport(c) if Class === Net::Ops::Transport.const_get(c)
         end
       end
@@ -48,7 +48,7 @@ module Net
         @credentials = credentials
 
         @logger.debug(@host) { "Opening session as #{ credentials[:username] }" }
-        
+
         @transports.each do |transport|
           @transport ||= transport.open(@host, @options, credentials)
         end
@@ -86,13 +86,13 @@ module Net
         output = ''
         @transport.cmd(command) { |c| output += c }
 
-        @logger.debug("#{ @host } (#{ get_mode })") { output }
+        # @logger.debug("#{ @host } (#{ get_mode })") { output }
         # @logger.warn(@host) { 'Net::Ops::IOSInvalidInput'; puts output } if /nvalid input detected/.match(output)
         fail Net::Ops::IOSInvalidInput if /nvalid input detected/.match(output)
-        
+
         output
       end
-      
+
       # Get the specified item on the device.
       # Equivalent to the Cisco show command.
       #
@@ -110,7 +110,7 @@ module Net
       def set(item, value)
         run("#{ item } #{ value }")
       end
-      
+
       # Enable the specified item on the device.
       #
       # @param item [String] the item to enable.
@@ -127,14 +127,14 @@ module Net
       def disable(item)
         run("no #{ item }")
       end
-      
+
       def zeroize(item)
         @logger.debug(@host) { "Executing #{ item } zeroize" }
-      
+
         @transport.cmd('String' => "#{ item } zeroize", 'Match' => /.+/)
         @transport.cmd('yes')
       end
-      
+
       def generate(item, options)
         run("#{ item } generate #{ options }")
       end
@@ -184,37 +184,37 @@ module Net
 
         write! if options == :enforce_save
       end
-      
+
       def interface(interface, &block)
         ensure_mode(:configuration)
-        
+
         run("interface #{ interface }")
         instance_eval(&block)
       end
-      
+
       def interfaces(interfaces = /.+/, &block)
         ints = privileged do
-          get('interfaces status').select do |int| 
+          get('interfaces status').select do |int|
             interfaces.match("#{ int['short_type'] }#{ int['port_number'] }")
           end
         end
-        
+
         ints.each do |int|
           interface("#{ int['short_type'] }#{ int['port_number'] }") do
             instance_eval(&block)
           end
         end
       end
-      
+
       def lines(lines, &block)
         ensure_mode(:configuration)
-        
+
         run("line #{ lines }")
         instance_eval(&block)
       end
 
       private
-      
+
       def register_transport(klass)
         @logger.debug(@host) { "Registering transport #{ klass }" }
         @transports << Net::Ops::Transport.const_get(klass)
@@ -229,8 +229,7 @@ module Net
         @logger = logger
 
         # Otherwise we create a new one.
-        # logger = Logger.new(STDOUT)
-        logger = Logger.new('log.log')
+        logger = Logger.new(STDOUT)
         logger.level = Logger::DEBUG
         @logger ||= logger
       end
@@ -240,9 +239,9 @@ module Net
       # @return [Symbol] the current command mode.
       def get_mode
         prompt = ''
-        @transport.cmd('') { |c| prompt += c }        
+        @transport.cmd('') { |c| prompt += c }
         match = /(?<hostname>[^\(-\)]+)(\((?<text>[\w\-]+)\))?(?<char>#|>)/.match(prompt)
-        
+
         mode  = nil
 
         if match && match['char']
@@ -252,12 +251,12 @@ module Net
                  when '#' then :privileged
                  end
 
-        end         
-        
+        end
+
         if match && match['text']
           mode = match['text'].to_sym
         end
-        
+
         mode
       end
 
@@ -273,7 +272,7 @@ module Net
 
         when :privileged
           run('end') if configuration?
-          enable_privileged(@credentials['password']) if user?
+          enable_privileged(@credentials[:password]) if user?
 
         when :configuration
           run('configure terminal') unless configuration?
@@ -312,7 +311,7 @@ module Net
       end
 
     end
-    
+
     class Parser
 
       def initialize(file)
@@ -320,16 +319,16 @@ module Net
       end
 
       def parse(command, output)
-        results = []        
+        results = []
         path    = explore_tree(command.split(/ /))
-        
+
         if path.has_key?('regex')
           regex = Regexp.new(path.fetch('regex').delete(' '))
-          
+
           output.each_line do |line|
             results << regex.match(line) if regex.match(line)
           end
-          
+
         else results = output
         end
 
@@ -342,40 +341,40 @@ module Net
         level = @regexs['cisco']
 
         path.each { |p| level[p] ? level = level[p] : break }
-        
+
         level
       end
 
     end
-    
+
     class Task
       include Net::Ops
 
       def initialize(id)
         @id = id
-        
+
         @logger = Logger.new(STDOUT)
         @logger.level = Logger::INFO
       end
-      
+
       def log(severity, message)
         @logger.add(severity, message, @id)
       end
-      
+
       def info(message)
         log(Logger::INFO, message)
       end
-      
+
       def warn(message)
         log(Logger::WARN, message)
       end
-      
+
       def error(message)
         log(Logger::ERROR, message)
       end
 
     end
-    
+
     #
     class TransportUnavailable < Exception; end
     class IOSInvalidInput < Exception; end
