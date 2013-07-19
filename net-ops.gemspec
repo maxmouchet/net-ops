@@ -3,7 +3,7 @@ Gem::Specification.new do |s|
   s.version     = '0.0.4.pre'
   s.date        = '2013-07-16'
   s.summary     = 'Net::Ops'
-  s.description = 'Framework for interacting with network devices.'
+  s.description = 'Framework to automate daily operations on network devices.'
   s.authors     = ['Maxime Mouchet']
   s.email       = ['max@maxmouchet.com']
   s.files       = ['lib/net/ops.rb']
