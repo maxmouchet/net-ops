@@ -24,7 +24,7 @@ module Net
       # @param [Logger] logger the logger to use.
       #
       # @return [Session] the new session.
-      def initialize(host, options = { timeout: 10, prompt: /.+(#|>)/ }, logger = nil)
+      def initialize(host, options = { timeout: 10, prompt: /.+(#|>|\])/ }, logger = nil)
         @host    = host
         @options = options
         @transports = []
