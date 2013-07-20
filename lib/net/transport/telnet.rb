@@ -3,10 +3,10 @@ require 'net/telnet'
 module Net
   module Ops
     module Transport
-    
+
       #
       class Telnet
-      
+
         # Open a Telnet session to the specified host using net/ssh.
         #
         # @param host [String] the destination host.
@@ -19,10 +19,18 @@ module Net
                                     'Timeout' => options[:timeout],
                                     'Prompt'  => options[:prompt])
 
-          session.cmd('String' => credentials[:username],
-                      'Match'  => /.+assword.+/)
+          output = ''
+          session.cmd('String' => '', 'Match'  => /.+/) { |c| output += c }
 
-          session.cmd(credentials[:password])
+          if /[Uu]sername:/.match(output) then
+            session.cmd('String' => credentials[:username],
+                      'Match'  => /.+/)
+            session.cmd(credentials[:password])
+          end
+
+          if /[Pp]assword:/.match(output) then
+            session.cmd(credentials[:password])
+          end
 
           return session
 
@@ -37,9 +45,9 @@ module Net
 
         return session
         end
-        
+
       end
-      
+
     end
   end
 end
