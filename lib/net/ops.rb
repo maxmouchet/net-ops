@@ -2,7 +2,9 @@ require 'yaml'
 require 'logger'
 require 'thread/pool'
 
-Dir['../lib/net/transport/*.rb'].each { |file| require file }
+#Dir['../lib/net/transport/*.rb'].each { |file| require file }
+require 'net/transport/ssh'
+require 'net/transport/telnet'
 
 module Net
   module Ops

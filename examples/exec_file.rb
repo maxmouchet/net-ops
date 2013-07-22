@@ -1,5 +1,5 @@
 require 'rubygems'
-require '../lib/net/ops'
+require 'net/ops'
 require 'yaml'
 
 credentials = YAML.load_file('credentials.yml')
