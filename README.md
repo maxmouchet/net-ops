@@ -47,13 +47,15 @@ You need to require net/ops in all your scripts and [tasks](#tasks) (we will tal
 require 'net/ops'
 ```
 
+To run a script you can double-click on it (on Windows) or issue `ruby my_script.rb` in a terminal.
+
 ### Storing credentials
 
 Writing directly your username and password directly in the script is a bad idea.  
 If you want to keep things simple you can store them in a [YAML](http://en.wikipedia.org/wiki/YAML) file with the following structure:
 ```yml
 # credentials.yml
-username: ledog
+username: user1
 password: r5Xqx8
 ```
 Then, to use them in your script:
@@ -61,9 +63,12 @@ Then, to use them in your script:
 ```ruby
 credentials = YAML.load_file('credentials.yml')
 
-credentials.fetch('username') #=> 'ledog'
+credentials.fetch('username') #=> 'user1'
 credentials.fetch('password') #=> 'r5Xqx8'
 ```
+
+*Note 1 : If you don't need a username to connect to your device you can either let it empty or specify any value. The field will be ignored.*  
+*Note 2 : Currently the login and the enable password used are the same ([issue #4](https://github.com/maxmouchet/net-ops/issues/4))*
 
 ### Connecting to a device
 
@@ -317,3 +322,5 @@ You can get the documentation via gem with `gem server`.
 Or generate it manually with `rake doc`.
 
 ## Todo - Ideas
+
+See [issues](https://github.com/maxmouchet/net-ops/issues?state=open).
