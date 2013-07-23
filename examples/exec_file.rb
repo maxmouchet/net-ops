@@ -15,7 +15,7 @@ hosts.each_line do |host|
   session.privileged { set 'terminal length', 0 }
 
   commands.each_line do |command|
-    puts @session.run(command)
+    puts session.run(command)
   end
 
 end

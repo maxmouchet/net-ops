@@ -3,30 +3,30 @@ require 'net/telnet'
 module Net; module Ops; module Transport
 
   #
-  class TelnetAdapter < Net::Telnet
+  class Telnet < Net::Telnet
 
     def initialize(host, options, credentials)
-      super('Host' => host,
+      super('Host'    => host,
             'Timeout' => options[:timeout],
             'Prompt'  => options[:prompt])
 
-      login
+      login(credentials)
     end
 
     private
 
-    def login
+    def login(credentials)
       output = ''
-      session.cmd('String' => '', 'Match'  => /.+/) { |c| output += c }
+      self.cmd('String' => '', 'Match'  => /.+/) { |c| output += c }
 
       if /[Uu]sername:/.match(output) then
-        session.cmd('String' => credentials[:username],
+        self.cmd('String' => credentials[:username],
                   'Match'  => /.+/)
-        session.cmd(credentials[:password])
+        self.cmd(credentials[:password])
       end
 
       if /[Pp]assword:/.match(output) then
-        session.cmd(credentials[:password])
+        self.cmd(credentials[:password])
       end
     end
 

@@ -3,7 +3,7 @@ require 'net/ssh/telnet'
 module Net; module Ops; module Transport
 
   #
-  class SSHAdapter < Net::SSH::Telnet
+  class SSH < Net::SSH::Telnet
 
     def initialize(host, options, credentials)
       super('Host'     => host,

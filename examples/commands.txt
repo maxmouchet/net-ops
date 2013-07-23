@@ -2,5 +2,5 @@ conf t
 hostname testhostname
 end
 wr
-reload
-yes
+#reload
+#yes
