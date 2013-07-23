@@ -2,20 +2,20 @@
 
 ## Ruby framework for interacting with network devices
 
-Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing but too often people do repetitive tasks at hand because they don't know how to write scripts.  
+Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing but too often people do repetitive tasks at hand because they don't know how to write scripts.
 I developed this little Ruby module to simplify daily operations on network devices like switches, routers, and access-points.
 
 ### Prerequisites
 
-I made it to be as simple as possible but, if you want to understand how it works or extend it, you will need some Ruby knowledge.  
-[The Little Book of Ruby](http://www.sapphiresteel.com/The-Little-Book-Of-Ruby) is a good introduction altough convention are not always clear.  
+I made it to be as simple as possible but, if you want to understand how it works or extend it, you will need some Ruby knowledge.
+[The Little Book of Ruby](http://www.sapphiresteel.com/The-Little-Book-Of-Ruby) is a good introduction altough convention are not always clear.
 [Design Patterns](http://www.amazon.fr/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612) and [Design Patterns in Ruby](http://www.pearsonhighered.com/educator/product/Design-Patterns-in-Ruby/9780321490452.page)
-are must read.  
+are must read.
 [Stack Overflow](http://stackoverflow.com/) is a good place in case of problem.
 
 ### Compatibility
 
-Tested with Cisco IOS and IOS XE devices. Should work partially with NX-OS.  
+Tested with Cisco IOS and IOS XE devices. Should work partially with NX-OS.
 Not compatible with IOS XR and non-Cisco devices but it would be possible to add an abstraction layer in ops.rb to support other brands.
 
 I implemented only two [transports](#transports), Telnet and SSH. If you want to use another protocol (a serial link for example) you will have to implement it.
@@ -23,10 +23,10 @@ I implemented only two [transports](#transports), Telnet and SSH. If you want to
 
 ## Installation
 
-First, you need a Ruby interpreter. [MRI](http://en.wikipedia.org/wiki/Ruby_MRI), the reference implementation, is a good choice. You can download it on [ruby-lang.org](http://www.ruby-lang.org/en/downloads/).  
-Note that MRI is already included in Mac OS X and most of the Linux distributions.  
-On Ubuntu you can install it with `apt-get install ruby1.9.3`.   
-There is other Ruby implementation like [JRuby](http://jruby.org/) or [MagLev](http://maglev.github.io/) but I have not tested my code with them.  
+First, you need a Ruby interpreter. [MRI](http://en.wikipedia.org/wiki/Ruby_MRI), the reference implementation, is a good choice. You can download it on [ruby-lang.org](http://www.ruby-lang.org/en/downloads/).
+Note that MRI is already included in Mac OS X and most of the Linux distributions.
+On Ubuntu you can install it with `apt-get install ruby1.9.3`.
+There is other Ruby implementation like [JRuby](http://jruby.org/) or [MagLev](http://maglev.github.io/) but I have not tested my code with them.
 
 Then you should intall net-ops. You can get the latest version from RubyGems:
 ```bash
@@ -51,7 +51,7 @@ To run a script you can double-click on it (on Windows) or issue `ruby my_script
 
 ### Storing credentials
 
-Writing directly your username and password directly in the script is a bad idea.  
+Writing directly your username and password directly in the script is a bad idea.
 If you want to keep things simple you can store them in a [YAML](http://en.wikipedia.org/wiki/YAML) file with the following structure:
 ```yml
 # credentials.yml
@@ -67,12 +67,12 @@ credentials.fetch('username') #=> 'user1'
 credentials.fetch('password') #=> 'r5Xqx8'
 ```
 
-*Note 1 : If you don't need a username to connect to your device you can either let it empty or specify any value. The field will be ignored.*  
+*Note 1 : If you don't need a username to connect to your device you can either let it empty or specify any value. The field will be ignored.*
 *Note 2 : Currently the login and the enable password used are the same ([issue #4](https://github.com/maxmouchet/net-ops/issues/4))*
 
 ### Connecting to a device
 
-Connecting to a device is a two-step process: create a session, and open it.  
+Connecting to a device is a two-step process: create a session, and open it.
 Nothing is sent on the transport until you open the session.
 
 #### Create the session
@@ -96,7 +96,7 @@ options = { timeout: 10, prompt: /.+(#|>)/ }
 
 ##### Logging
 
-By default `Session` logs everything from `Level::DEBUG` to `STDOUT`. You can specify a custom logger to the constructor.  
+By default `Session` logs everything from `Level::DEBUG` to `STDOUT`. You can specify a custom logger to the constructor.
 For example to log everything from `Level::WARN` to a file:
 ```ruby
 logger = Logger.new('logfile.log')
@@ -126,7 +126,7 @@ end
 
 #### Close the session
 
-It is generally not needed to close the session since the Ruby garbage collector will do it automatically.  
+It is generally not needed to close the session since the Ruby garbage collector will do it automatically.
 However if you need to, you can call `close`:
 ```ruby
 @session.close
@@ -138,15 +138,15 @@ Once the session is opened you can send commands to the device. Net::Ops offer t
 
 #### Raw commands
 
-The basic way to send a command and get the output is the `run(command)` method.  
-It send command (`String`) followed by a carriage return to the device, wait for the prompt, and return what happened between.  
+The basic way to send a command and get the output is the `run(command)` method.
+It send command (`String`) followed by a carriage return to the device, wait for the prompt, and return what happened between.
 For example, to get `show int status` output:
 
 ```ruby
 puts @session.run('show int status')
 ```
 
-`run(command)` is pretty low-level but sometimes you will want to play directly with the transport.  
+`run(command)` is pretty low-level but sometimes you will want to play directly with the transport.
 For example when the command ask for confirmation and doesn't return the prompt (like `reload`). In this case you can do something like this:
 ```ruby
 transport = @session.transport
@@ -164,7 +164,7 @@ transport.cmd('show version') { |c| puts c }
 
 #### Basic commands
 
-To make your script easier to read, Net::Ops provides methods which are basically alias to Cisco commands.  
+To make your script easier to read, Net::Ops provides methods which are basically alias to Cisco commands.
 These are `get(item)`, `set(item, value)`, `enable(item)`, and `disable(item)`:
 ```ruby
 @session.get 'interfaces status'
@@ -200,16 +200,16 @@ Here's an example of how to use it:
 
   # Let's get interfaces status.
   sw_interfaces = get 'interfaces status'
-  
+
   # Show disabled interfaces
   nc_interfaces = sw_interfaces.select { |int| int['status'] == 'disabled' }
   puts nc_interfaces
-  
+
 end
 
 # Do some stuff in configuration mode.
 @session.configuration do
-  
+
   # Add description to Gi1/0/2.
   # Note the singular/plural in interface(s).
   # interface accept only String as an argument.
@@ -217,12 +217,12 @@ end
   interface('Gi1/0/2') do
     set 'description', 'I am Gi1/0/2'
   end
-  
+
   # Disable bpduguard on all Gig interfaces.
   interfaces(/Gi1\/0/) do
     disable 'spanning-tree bpduguard'
   end
-  
+
 end
 
 # Copy to startup-config
@@ -255,7 +255,7 @@ Example :
 ```
 
 ## Tasks
-Net::Ops allow to define tasks that perform a specific action and run it on several devices in parallel while handling errors and providing easy logging.  
+Net::Ops allow to define tasks that perform a specific action and run it on several devices in parallel while handling errors and providing easy logging.
 
 ### Definition
 To define a task you should create a new class that inherit from `Task` and define `initialize` and `work` methods:
@@ -272,11 +272,11 @@ class MyTask < Net::Ops::Task
   def work
     # Place your logic here.
   end
-  
+
 end
 ```
 
-`id` is an identifier that should be unique for each instance of your task. You can use whatever you want, for example the hostname of the device you are currently working on.  
+`id` is an identifier that should be unique for each instance of your task. You can use whatever you want, for example the hostname of the device you are currently working on.
 
 ### Execution
 To run a task you can basically instance it and call work:
@@ -313,7 +313,7 @@ class MyCustomTransport
     session = # Do what you need to get a session to the host.
     return session
   end
-  
+
 end
 ```
 
@@ -324,3 +324,11 @@ Or generate it manually with `rake doc`.
 ## Todo - Ideas
 
 See [issues](https://github.com/maxmouchet/net-ops/issues?state=open).
+
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request

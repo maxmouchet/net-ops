@@ -1,14 +1,26 @@
-Gem::Specification.new do |s|
-  s.name        = 'net-ops'
-  s.version     = '0.0.5.pre'
-  s.date        = '2013-07-16'
-  s.summary     = 'Net::Ops'
-  s.description = 'Framework to automate daily operations on network devices.'
-  s.authors     = ['Maxime Mouchet']
-  s.email       = ['max@maxmouchet.com']
-  s.files       = ['lib/net/ops.rb', 'lib/net/transport/ssh.rb', 'lib/net/transport/telnet.rb']
-  s.add_runtime_dependency 'thread', '~> 0.1'
-  s.add_runtime_dependency 'net-ssh-telnet', '~> 0.0.2'
-  s.license     = 'MIT'
-  s.homepage    = 'http://github.com/maxmouchet/qscripts'
+# coding: utf-8
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'net/ops/version'
+
+Gem::Specification.new do |spec|
+  spec.name          = 'net-ops'
+  spec.version       = Net::Ops::VERSION
+  spec.authors       = ['Maxime Mouchet']
+  spec.email         = ['mouchet.max@gmail.com']
+  spec.description   = %q{Framework to automate daily operations on network devices.}
+  spec.summary       = %q{Net::Ops}
+  spec.homepage      = 'http://github.com/maxmouchet/qscripts'
+  spec.license       = 'MIT'
+
+  spec.files         = `git ls-files`.split($/)
+  spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
+  spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+  spec.require_paths = ['lib']
+
+  spec.add_runtime_dependency 'thread', '~> 0.1'
+  spec.add_runtime_dependency 'net-ssh-telnet', '~> 0.0.2'
+
+  spec.add_development_dependency 'bundler', '~> 1.3'
+  spec.add_development_dependency 'rake'
 end
