@@ -3,6 +3,7 @@ require 'logger'
 require 'thread/pool'
 
 require 'net/ops/version'
+
 require 'net/ops/task'
 require 'net/ops/parser'
 require 'net/ops/session'
@@ -11,7 +12,7 @@ require 'net/ops/transport/telnet'
 
 module Net
 
-  #
+  # Ruby framework for interacting with network devices.
   module Ops
 
     class TransportUnavailable < Exception; end
