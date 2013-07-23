@@ -13,7 +13,7 @@ module Net; module Ops; module Transport
     def self.open(host, options, credentials)
       session = nil
 
-      session = Net::Telsnet.new('Host' => host,
+      session = Net::Telnet.new('Host' => host,
                                 'Timeout' => options[:timeout],
                                 'Prompt'  => options[:prompt])
 
