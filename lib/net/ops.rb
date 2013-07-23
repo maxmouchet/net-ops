@@ -2,6 +2,7 @@ require 'yaml'
 require 'logger'
 require 'thread/pool'
 
+require 'net/ops/version'
 require 'net/ops/task'
 require 'net/ops/parser'
 require 'net/ops/session'
