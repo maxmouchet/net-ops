@@ -18,7 +18,7 @@ module Net; module Ops
     #
     # @return [Session] the new session.
     def initialize(host, options = { timeout: 10, prompt: /.+(#|>|\])/ }, logger = nil)
-      @host    = host
+      @host    = host.strip
       @options = options
       @transports = []
 
@@ -43,7 +43,12 @@ module Net; module Ops
       @logger.debug(@host) { "Opening session as #{ credentials[:username] }" }
 
       @transports.each do |transport|
-        @transport ||= transport.open(@host, @options, credentials)
+        begin
+          @transport ||= transport.new(@host, @options, credentials)
+        rescue Exception => e
+          @logger.debug(@host) { e }
+          next
+        end
       end
 
       fail Net::Ops::TransportUnavailable unless @transport
