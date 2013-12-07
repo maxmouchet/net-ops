@@ -30,7 +30,7 @@ There is other Ruby implementation like [JRuby](http://jruby.org/) or [MagLev](h
 
 Then you should intall net-ops. You can get the latest version from RubyGems:
 ```bash
-gem install 'net-ops'
+gem install 'net-ops' --pre
 ```
 
 Or build it from the source:
