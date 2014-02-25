@@ -1,5 +1,9 @@
 # Net::Ops
 
+[![Gem version](http://img.shields.io/gem/v/net-ops.svg)](#)
+[![Dependencies](http://img.shields.io/gemnasium/maxmouchet/net-ops.svg)](#)
+[![License](http://img.shields.io/badge/license-MIT-blue.svg)](#)
+
 ## Automate daily operations on network devices
 
 Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing but too often people do repetitive tasks at hand because they don't know how to write scripts.
