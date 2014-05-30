@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['mouchet.max@gmail.com']
   spec.description   = %q{Framework to automate daily operations on network devices.}
   spec.summary       = %q{Net::Ops}
-  spec.homepage      = 'http://github.com/maxmouchet/qscripts'
+  spec.homepage      = 'http://github.com/maxmouchet/net-ops'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($/)
@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'thread', '~> 0.1'
   spec.add_runtime_dependency 'net-ssh-telnet', '~> 0.0.2'
+  spec.add_runtime_dependency 'term-ansicolor', '~> 1.3'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
   spec.add_development_dependency 'rake'

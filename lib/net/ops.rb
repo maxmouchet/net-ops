@@ -1,12 +1,15 @@
 require 'yaml'
 require 'logger'
 require 'thread/pool'
+require 'term/ansicolor'
 
 require 'net/ops/version'
 
+require 'net/ops/dsl'
 require 'net/ops/task'
 require 'net/ops/parser'
 require 'net/ops/session'
+require 'net/ops/logger'
 
 require 'net/ops/transport'
 
@@ -17,6 +20,10 @@ module Net
 
     class TransportUnavailable < Exception; end
     class IOSInvalidInput      < Exception; end
+
+    class Color
+      extend Term::ANSIColor
+    end
 
   end
 

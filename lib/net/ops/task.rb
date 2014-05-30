@@ -7,7 +7,7 @@ module Net; module Ops
     def initialize(id)
       @id = id
 
-      @logger = Logger.new(STDOUT)
+      @logger = ColorLogger.new(STDOUT)
       @logger.level = Logger::INFO
     end
 
