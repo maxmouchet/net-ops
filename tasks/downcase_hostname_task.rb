@@ -1,9 +1,12 @@
 # Task for converting hostname to lowercase.
 # Handle devices with SSH by regenerating crypto key.
 
-require '../lib/net/ops'
+require 'net/ops'
 
+require 'net/ops/transport/telnet'
 require 'net/ops/transport/text'
+require 'net/ops/transport/ssh'
+require 'net/ops/dsl/cisco'
 
 class DowncaseHostnameTask < Net::Ops::Task
 
@@ -12,14 +15,14 @@ class DowncaseHostnameTask < Net::Ops::Task
     @options     = options
     @credentials = credentials
 
-    @session = Session.new(host, options)
+    # TODO: Explain on passe un string parceque c'est plus facile a serialiser qu'un objet
+    @session = Session.new(host, :cisco, [:Text], options)
 
     super(host)
   end
 
   # This is where all the logic is.
   def work
-
     # First we need to open the session.
     # I create a helper because we will have to
     # (dis)connect several times during this task.

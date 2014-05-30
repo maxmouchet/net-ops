@@ -2,7 +2,7 @@ require 'net/ssh/telnet'
 
 module Net; module Ops; module Transport
 
-  #
+  # Allow to connect to SSH devices.
   class SSH < Net::SSH::Telnet
 
     def initialize(host, options, credentials)

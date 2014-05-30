@@ -1,5 +1,6 @@
 module Net; module Ops; module Transport
 
+  # Output commands to a text file. Useful for debugging.
   class Text
 
     def initialize(host, options, credentials)

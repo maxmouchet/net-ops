@@ -2,7 +2,7 @@ require 'net/telnet'
 
 module Net; module Ops; module Transport
 
-  #
+  # Allow to connect to Telnet devices.
   class Telnet < Net::Telnet
 
     def initialize(host, options, credentials)

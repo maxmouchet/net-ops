@@ -1,6 +1,6 @@
 module Net; module Ops
 
-  #
+  # Provides colored logging to the terminal.
   class ColorLogger < Logger
 
     def initialize(logdev)
@@ -18,7 +18,7 @@ module Net; module Ops
         when 'ERROR'
           Color.red + severity + Color.clear
         end
-        original_formatter.call(severity, datetime, progname, msg.dump)
+        original_formatter.call(severity, datetime, progname, msg)
       end
     end
 

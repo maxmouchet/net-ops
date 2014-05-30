@@ -1,6 +1,7 @@
 module Net; module Ops
 
-  # Provides a DSL for interacting with Cisco switches and routers.
+  # Manage the connection to a device and the execution of the commands on it.
+  # TODO: Transaction (commit, rollback) ?
   class Session
 
     attr_reader :transport
@@ -17,16 +18,27 @@ module Net; module Ops
     # @param [Logger] logger the logger to use.
     #
     # @return [Session] the new session.
-    def initialize(host, options = { timeout: 10, prompt: /.+(#|>|\])/ }, logger = nil)
+    def initialize(host, dsl, transports, options = { timeout: 10, prompt: /.+(#|>|\])/ }, logger = nil)
       @host    = host.strip
       @options = options
       @transports = []
 
       setup_logger(logger)
+      set_dsl(dsl.to_s.capitalize)
 
-      Net::Ops::Transport.constants.each do |c|
-        register_transport(c) if Class === Net::Ops::Transport.const_get(c)
+      # Register transports
+      transports.each do |transport_symbol|
+        canonical_name = 'Net::Ops::Transport::' + transport_symbol.to_s
+        begin
+          register_transport(canonical_name) if Class === Net::Ops::Transport.const_get(canonical_name)
+        rescue
+          @logger.error(@host) { "Unknown transport #{ canonical_name }" }
+        end
       end
+
+      # Net::Ops::Transport.constants.each do |c|
+      #   register_transport(c) if Class === Net::Ops::Transport.const_get(c)
+      # end
     end
 
     # Open the session to the device.
@@ -52,6 +64,8 @@ module Net; module Ops
       end
 
       fail Net::Ops::TransportUnavailable unless @transport
+
+      @dsl_instance = @dsl.new(@transport, @logger)
     end
 
     # Close the session to the device.
@@ -74,144 +88,18 @@ module Net; module Ops
       (t2 - t1) * 1000.0
     end
 
-    # Send the specified command to the device and wait for the output.
-    #
-    # @param  [String] command the command to run.
-    # @return [String] the output of the command.
-    def run(command)
-      @logger.debug("#{ @host } (#{ get_mode })") { "Executing #{ command }" }
-
-      output = ''
-      @transport.cmd(command) { |c| output += c }
-
-      # @logger.debug("#{ @host } (#{ get_mode })") { output }
-      # @logger.warn(@host) { 'Net::Ops::IOSInvalidInput'; puts output } if /nvalid input detected/.match(output)
-      fail Net::Ops::IOSInvalidInput if /nvalid input detected/.match(output)
-
-      output
-    end
-
-    # Get the specified item on the device.
-    # Equivalent to the Cisco show command.
-    #
-    # @param item [String] the item to get.
-    # @return [String] the item.
-    def get(item)
-      run("show #{ item }")
-    end
-
-    # Set the value for the specified item on the device.
-    #
-    # @param item  [String] the item to configure.
-    # @param value [String] the value to assign to the item.
-    # @return [String] the eventual output of the command.
-    def set(item, value)
-      run("#{ item } #{ value }")
-    end
-
-    # Enable the specified item on the device.
-    #
-    # @param item [String] the item to enable.
-    # @return [String] the eventual output of the command.
-    def enable(item)
-      run(item)
-    end
-
-    # Disable the specified item on the device.
-    # Equivalent to the Cisco no command.
-    #
-    # @param item [String] the item to enable.
-    # @return [String] the eventual output of the command.
-    def disable(item)
-      run("no #{ item }")
-    end
-
-    def zeroize(item)
-      @logger.debug(@host) { "Executing #{ item } zeroize" }
-
-      @transport.cmd('String' => "#{ item } zeroize", 'Match' => /.+/)
-      @transport.cmd('yes')
-    end
-
-    def generate(item, options)
-      run("#{ item } generate #{ options }")
-    end
-
-    # Run the specified command in the privileged mode on the device.
-    #
-    # @param  [String] command the command to run.
-    # @return [String] the output of the command.
-    def exec(command)
-      ensure_mode(:privileged)
-      run(command)
-    end
-
-    # Run the specified command in the configuration mode on the device.
-    #
-    # @param  [String] command the command to run.
-    # @return [String] the output of the command.
-    def config(command)
-      ensure_mode(:configuration)
-      run(command)
-    end
-
-    # Save the configuration of the device.
-    # Equivalent to the Cisco copy running-config startup-config command.
-    # @return [void]
-    def write!
-      ensure_mode(:privileged)
-      exec('write memory')
-    end
-
-    # Run the specified block in the privileged mode on the device.
-    #
-    # @param  [Block] block the block to run.
-    # @return [void]
-    def privileged(&block)
-      ensure_mode(:privileged)
-      instance_eval(&block)
-    end
-
-    # Run the specified block in the configuration mode on the device.
-    #
-    # @param  [Block] block the block to run.
-    # @return [void]
-    def configuration(options = nil, &block)
-      ensure_mode(:configuration)
-      instance_eval(&block)
-
-      write! if options == :enforce_save
-    end
-
-    def interface(interface, &block)
-      ensure_mode(:configuration)
-
-      run("interface #{ interface }")
-      instance_eval(&block)
-    end
-
-    def interfaces(interfaces = /.+/, &block)
-      ints = privileged do
-        get('interfaces status').select do |int|
-          interfaces.match("#{ int['short_type'] }#{ int['port_number'] }")
-        end
-      end
-
-      ints.each do |int|
-        interface("#{ int['short_type'] }#{ int['port_number'] }") do
-          instance_eval(&block)
-        end
-      end
-    end
-
-    def lines(lines, &block)
-      ensure_mode(:configuration)
-
-      run("line #{ lines }")
-      instance_eval(&block)
+    def method_missing(m, *args, &block)
+      # Search in all dsls
+      @dsl_instance.send(m, *args, &block)
+      # TODO: Warn method unsupported in DSL if not found
     end
 
     private
+
+    def set_dsl(klass)
+      @logger.debug(@host) { "Using DSL #{ klass }"}
+      @dsl = Net::Ops::DSL.const_get(klass)
+    end
 
     def register_transport(klass)
       @logger.debug(@host) { "Registering transport #{ klass }" }
@@ -227,85 +115,9 @@ module Net; module Ops
       @logger = logger
 
       # Otherwise we create a new one.
-      logger = Logger.new(STDOUT)
+      logger = ColorLogger.new(STDOUT)
       logger.level = Logger::DEBUG
       @logger ||= logger
-    end
-
-    # Get the current command mode.
-    #
-    # @return [Symbol] the current command mode.
-    def get_mode
-      prompt = ''
-      @transport.cmd('') { |c| prompt += c }
-      match = /(?<hostname>[^\(-\)]+)(\((?<text>[\w\-]+)\))?(?<char>#|>)/.match(prompt)
-
-      mode  = nil
-
-      if match && match['char']
-
-        mode = case match['char']
-               when '>' then :user
-               when '#' then :privileged
-               end
-
-      end
-
-      if match && match['text']
-        mode = match['text'].to_sym
-      end
-
-      mode
-    end
-
-    # Ensure the CLI is currently in the specified command mode.
-    #
-    # @param  [Symbol] mode the target command mode.
-    # @return [void]
-    def ensure_mode(mode)
-      case mode
-
-      when :user
-        run('end') if configuration?
-
-      when :privileged
-        run('end') if configuration?
-        enable_privileged(@credentials[:password]) if user?
-
-      when :configuration
-        run('configure terminal') unless configuration?
-
-      end
-    end
-
-    # Check if the CLI is in user mode.
-    #
-    # @return [Boolean]
-    def user?
-      get_mode == :user
-    end
-
-    # Check if the CLI is in privileged mode.
-    #
-    # @return [Boolean]
-    def privileged?
-      get_mode == :privileged
-    end
-
-    # Check if the CLI is in configuration mode.
-    #
-    # @return [Boolean]
-    def configuration?
-      get_mode.to_s.include?('config')
-    end
-
-    # Go from user mode to privileged mode.
-    #
-    # @param  [String] the enable password.
-    # @return [void]
-    def enable_privileged(password)
-      @transport.cmd('String' => 'enable', 'Match' => /.+assword.+/)
-      @transport.cmd(password)
     end
 
   end
