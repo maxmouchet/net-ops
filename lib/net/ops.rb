@@ -9,7 +9,7 @@ require 'net/ops/dsl'
 require 'net/ops/task'
 require 'net/ops/parser'
 require 'net/ops/session'
-require 'net/ops/logger'
+require 'net/ops/color_logger'
 
 require 'net/ops/transport'
 
