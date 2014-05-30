@@ -20,3 +20,5 @@ doc/
 
 credentials.yml
 *~
+
+tasks/debug.txt
