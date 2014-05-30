@@ -8,8 +8,7 @@ require 'net/ops/task'
 require 'net/ops/parser'
 require 'net/ops/session'
 
-require 'net/ops/transport/ssh'
-require 'net/ops/transport/telnet'
+require 'net/ops/transport'
 
 module Net
 
