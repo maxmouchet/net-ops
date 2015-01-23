@@ -4,6 +4,7 @@
 require 'net/ops'
 
 require 'net/ops/transport/telnet'
+require 'net/ops/transport/stdio'
 require 'net/ops/transport/text'
 require 'net/ops/transport/ssh'
 require 'net/ops/dsl/cisco'
@@ -16,7 +17,7 @@ class DowncaseHostnameTask < Net::Ops::Task
     @credentials = credentials
 
     # TODO: Explain on passe un string parceque c'est plus facile a serialiser qu'un objet
-    @session = Session.new(host, :cisco, [:Text], options)
+    @session = Session.new(host, :cisco, [:StdIO], options)
 
     super(host)
   end
