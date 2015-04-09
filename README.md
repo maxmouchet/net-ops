@@ -9,6 +9,8 @@
 Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing but too often people do repetitive tasks at hand because they don't know how to write scripts.
 I developed this little Ruby module to simplify daily operations on network devices like switches, routers, and access-points.
 
+**Project Status :** Paused. I may work on it later but I don't have the time for now. 
+
 ### Prerequisites
 
 I made it to be as simple as possible but, if you want to understand how it works or extend it, you will need some Ruby knowledge.
