@@ -6,18 +6,18 @@
 
 ## Automate daily operations on network devices
 
-Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing but too often people do repetitive tasks at hand because they don't know how to write scripts.
+Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing, but too often people do repetitive tasks at hand because they don't know how to write scripts.
 I developed this little Ruby module to simplify daily operations on network devices like switches, routers, and access-points.
 
-**Project Status :** Paused. I may work on it later but I don't have the time for now. 
+**Project Status:** Paused. I may work on it later, but I don't have the time for now. 
 
 ### Prerequisites
 
 I made it to be as simple as possible but, if you want to understand how it works or extend it, you will need some Ruby knowledge.
-[The Little Book of Ruby](http://www.sapphiresteel.com/The-Little-Book-Of-Ruby) is a good introduction altough convention are not always clear.
+[The Little Book of Ruby](http://www.sapphiresteel.com/The-Little-Book-Of-Ruby) is a good introduction although convention are not always clear.
 [Design Patterns](http://www.amazon.fr/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612) and [Design Patterns in Ruby](http://www.pearsonhighered.com/educator/product/Design-Patterns-in-Ruby/9780321490452.page)
 are must read.
-[Stack Overflow](http://stackoverflow.com/) is a good place in case of problem.
+[Stack Overflow](http://stackoverflow.com/) is a good place in case of problems.
 
 ### Compatibility
 
@@ -31,10 +31,10 @@ I implemented only two [transports](#transports), Telnet and SSH. If you want to
 
 First, you need a Ruby interpreter. [MRI](http://en.wikipedia.org/wiki/Ruby_MRI), the reference implementation, is a good choice. You can download it on [ruby-lang.org](http://www.ruby-lang.org/en/downloads/).
 Note that MRI is already included in Mac OS X and most of the Linux distributions.
-On Ubuntu you can install it with `apt-get install ruby1.9.3`.
+On Ubuntu, you can install it with `apt-get install ruby1.9.3`.
 There is other Ruby implementation like [JRuby](http://jruby.org/) or [MagLev](http://maglev.github.io/) but I have not tested my code with them.
 
-Then you should intall net-ops. You can get the latest version from RubyGems:
+Then you should install net-ops. You can get the latest version from RubyGems:
 ```bash
 gem install 'net-ops' --pre
 ```
@@ -73,8 +73,8 @@ credentials.fetch('username') #=> 'user1'
 credentials.fetch('password') #=> 'r5Xqx8'
 ```
 
-*Note 1 : If you don't need a username to connect to your device you can either let it empty or specify any value. The field will be ignored.*
-*Note 2 : Currently the login and the enable password used are the same ([issue #4](https://github.com/maxmouchet/net-ops/issues/4))*
+*Note 1: If you don't need a username to connect to your device you can either let it empty or specify any value. The field will be ignored.*
+*Note 2: Currently the login and the enable password used are the same ([issue #4](https://github.com/maxmouchet/net-ops/issues/4))*
 
 ### Connecting to a device
 
@@ -186,7 +186,7 @@ These are `get(item)`, `set(item, value)`, `enable(item)`, and `disable(item)`:
 # send 'no spanning-tree bpduguard'
 ```
 
-These methods allow you to write script that are easily readable but you can do much more by combining them with the [DSL](http://en.wikipedia.org/wiki/Domain-specific_language) that Net::Ops provides.
+These methods allow you to write a script that are easily readable, but you can do much more by combining them with the [DSL](http://en.wikipedia.org/wiki/Domain-specific_language) that Net::Ops provides.
 
 #### Domain-specific language
 
@@ -197,7 +197,7 @@ Currently the DSL is made of five methods:
 * `interfaces(interfaces, &block)`
 * `lines(lines, &block)`
 
-They allow you to run commands in the specified context. Note that don't have to prefix methods with `@session` since the block is evalued inside the session.
+They allow you to run commands in the specified context. Note that don't have to prefix methods with `@session` since the block is evaluated inside the session.
 
 Here's an example of how to use it:
 ```ruby
@@ -218,7 +218,7 @@ end
 
   # Add description to Gi1/0/2.
   # Note the singular/plural in interface(s).
-  # interface accept only String as an argument.
+  # interface accepts only String as an argument.
   # interfaces accept Array, Regexp, and String.
   interface('Gi1/0/2') do
     set 'description', 'I am Gi1/0/2'
@@ -282,7 +282,7 @@ class MyTask < Net::Ops::Task
 end
 ```
 
-`id` is an identifier that should be unique for each instance of your task. You can use whatever you want, for example the hostname of the device you are currently working on.
+`id` is an identifier that should be unique for each instance of your task. You can use whatever you want, for example, the hostname of the device you are currently working on.
 
 ### Execution
 To run a task you can basically instance it and call work:
@@ -292,7 +292,7 @@ t = MyTask.new('task1')
 t.work
 ```
 
-However you may want to run several tasks in parallel to speed up things. You can do that thanks to [thread/pool](https://github.com/meh/ruby-thread):
+However, you may want to run several tasks in parallel to speed up things. You can do that thanks to [thread/pool](https://github.com/meh/ruby-thread):
 
 ```ruby
 hosts = %w( host1 host2 host3 )
