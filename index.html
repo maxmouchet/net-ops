@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Net::Ops by maxmouchet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Net::Ops</h1>
+      <h2 class="project-tagline">Ruby framework for automating network operations.</h2>
+      <a href="https://github.com/maxmouchet/net-ops" class="btn">View on GitHub</a>
+      <a href="https://github.com/maxmouchet/net-ops/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/maxmouchet/net-ops/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="netops" class="anchor" href="#netops" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Net::Ops</h1>
+
+<p><a href="#"><img src="http://img.shields.io/gem/v/net-ops.svg" alt="Gem version"></a>
+<a href="#"><img src="http://img.shields.io/gemnasium/maxmouchet/net-ops.svg" alt="Dependencies"></a>
+<a href="#"><img src="http://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a></p>
+
+<h2>
+<a id="automate-daily-operations-on-network-devices" class="anchor" href="#automate-daily-operations-on-network-devices" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Automate daily operations on network devices</h2>
+
+<p>Computers are made to simplify our lives, not make them more complicated. They don't mind doing 1000x the same thing, but too often people do repetitive tasks at hand because they don't know how to write scripts.
+I developed this little Ruby module to simplify daily operations on network devices like switches, routers, and access-points.</p>
+
+<p><strong>Project Status:</strong> Paused. I may work on it later, but I don't have the time for now. </p>
+
+<h3>
+<a id="prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Prerequisites</h3>
+
+<p>I made it to be as simple as possible but, if you want to understand how it works or extend it, you will need some Ruby knowledge.
+<a href="http://www.sapphiresteel.com/The-Little-Book-Of-Ruby">The Little Book of Ruby</a> is a good introduction although convention are not always clear.
+<a href="http://www.amazon.fr/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612">Design Patterns</a> and <a href="http://www.pearsonhighered.com/educator/product/Design-Patterns-in-Ruby/9780321490452.page">Design Patterns in Ruby</a>
+are must read.
+<a href="http://stackoverflow.com/">Stack Overflow</a> is a good place in case of problems.</p>
+
+<h3>
+<a id="compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Compatibility</h3>
+
+<p>Tested with Cisco IOS and IOS XE devices. Should work partially with NX-OS.
+Not compatible with IOS XR and non-Cisco devices but it would be possible to add an abstraction layer in ops.rb to support other brands.</p>
+
+<p>I implemented only two <a href="#transports">transports</a>, Telnet and SSH. If you want to use another protocol (a serial link for example) you will have to implement it.</p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>First, you need a Ruby interpreter. <a href="http://en.wikipedia.org/wiki/Ruby_MRI">MRI</a>, the reference implementation, is a good choice. You can download it on <a href="http://www.ruby-lang.org/en/downloads/">ruby-lang.org</a>.
+Note that MRI is already included in Mac OS X and most of the Linux distributions.
+On Ubuntu, you can install it with <code>apt-get install ruby1.9.3</code>.
+There is other Ruby implementation like <a href="http://jruby.org/">JRuby</a> or <a href="http://maglev.github.io/">MagLev</a> but I have not tested my code with them.</p>
+
+<p>Then you should install net-ops. You can get the latest version from RubyGems:</p>
+
+<div class="highlight highlight-source-shell"><pre>gem install <span class="pl-s"><span class="pl-pds">'</span>net-ops<span class="pl-pds">'</span></span> --pre</pre></div>
+
+<p>Or build it from the source:</p>
+
+<div class="highlight highlight-source-shell"><pre>gem build net-ops.gemspec
+gem install ./net-ops-x.y.z.gem</pre></div>
+
+<h2>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>You need to require net/ops in all your scripts and <a href="#tasks">tasks</a> (we will talk about this later):</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-k">require</span> <span class="pl-s"><span class="pl-pds">'</span>net/ops<span class="pl-pds">'</span></span></pre></div>
+
+<p>To run a script you can double-click on it (on Windows) or issue <code>ruby my_script.rb</code> in a terminal.</p>
+
+<h3>
+<a id="storing-credentials" class="anchor" href="#storing-credentials" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Storing credentials</h3>
+
+<p>Writing directly your username and password directly in the script is a bad idea.
+If you want to keep things simple you can store them in a <a href="http://en.wikipedia.org/wiki/YAML">YAML</a> file with the following structure:</p>
+
+<div class="highlight highlight-source-yaml"><pre><span class="pl-c"># credentials.yml</span>
+<span class="pl-ent">username:</span> <span class="pl-s">user1</span>
+<span class="pl-ent">password:</span> <span class="pl-s">r5Xqx8</span></pre></div>
+
+<p>Then, to use them in your script:</p>
+
+<div class="highlight highlight-source-ruby"><pre>credentials <span class="pl-k">=</span> <span class="pl-c1">YAML</span>.load_file(<span class="pl-s"><span class="pl-pds">'</span>credentials.yml<span class="pl-pds">'</span></span>)
+
+credentials.fetch(<span class="pl-s"><span class="pl-pds">'</span>username<span class="pl-pds">'</span></span>) <span class="pl-c">#=&gt; 'user1'</span>
+credentials.fetch(<span class="pl-s"><span class="pl-pds">'</span>password<span class="pl-pds">'</span></span>) <span class="pl-c">#=&gt; 'r5Xqx8'</span></pre></div>
+
+<p><em>Note 1: If you don't need a username to connect to your device you can either let it empty or specify any value. The field will be ignored.</em>
+<em>Note 2: Currently the login and the enable password used are the same (<a href="https://github.com/maxmouchet/net-ops/issues/4">issue #4</a>)</em></p>
+
+<h3>
+<a id="connecting-to-a-device" class="anchor" href="#connecting-to-a-device" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Connecting to a device</h3>
+
+<p>Connecting to a device is a two-step process: create a session, and open it.
+Nothing is sent on the transport until you open the session.</p>
+
+<h4>
+<a id="create-the-session" class="anchor" href="#create-the-session" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Create the session</h4>
+
+<p>To create a Session you just need to specify the hostname (or the IP address):</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-smi">@session</span> <span class="pl-k">=</span> <span class="pl-c1">Net</span>::<span class="pl-c1">Ops</span>::<span class="pl-c1">Session</span>.<span class="pl-k">new</span>(<span class="pl-s"><span class="pl-pds">'</span>router1.local<span class="pl-pds">'</span></span>)</pre></div>
+
+<h5>
+<a id="options" class="anchor" href="#options" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Options</h5>
+
+<p>You can also customize the timeout (<code>Integer</code>) and the prompt (<code>Regexp</code>) if you want:</p>
+
+<div class="highlight highlight-source-ruby"><pre>host    <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>router1.local<span class="pl-pds">'</span></span>
+options <span class="pl-k">=</span> { <span class="pl-c1">timeout:</span> <span class="pl-c1">10</span>, <span class="pl-c1">prompt:</span> <span class="pl-sr"><span class="pl-pds">/</span>.+<span class="pl-sr">(#|&gt;)</span><span class="pl-pds">/</span></span> }
+
+<span class="pl-smi">@session</span> <span class="pl-k">=</span> <span class="pl-c1">Net</span>::<span class="pl-c1">Ops</span>::<span class="pl-c1">Session</span>.<span class="pl-k">new</span>(host, options)</pre></div>
+
+<h5>
+<a id="logging" class="anchor" href="#logging" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Logging</h5>
+
+<p>By default <code>Session</code> logs everything from <code>Level::DEBUG</code> to <code>STDOUT</code>. You can specify a custom logger to the constructor.
+For example to log everything from <code>Level::WARN</code> to a file:</p>
+
+<div class="highlight highlight-source-ruby"><pre>logger <span class="pl-k">=</span> <span class="pl-c1">Logger</span>.<span class="pl-k">new</span>(<span class="pl-s"><span class="pl-pds">'</span>logfile.log<span class="pl-pds">'</span></span>)
+logger.level <span class="pl-k">=</span> <span class="pl-c1">Logger</span>::<span class="pl-c1">WARN</span>
+
+<span class="pl-smi">@session</span> <span class="pl-k">=</span> <span class="pl-c1">Net</span>::<span class="pl-c1">Ops</span>::<span class="pl-c1">Session</span>.<span class="pl-k">new</span>(host, options, logger)</pre></div>
+
+<h4>
+<a id="open-the-session" class="anchor" href="#open-the-session" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Open the session</h4>
+
+<p>Given you loaded your credentials from a YAML file you can open the session like this:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-smi">@session</span>.open({ <span class="pl-c1">username:</span> credentials.fetch(<span class="pl-s"><span class="pl-pds">'</span>username<span class="pl-pds">'</span></span>),
+               <span class="pl-c1">password:</span> credentials.fetch(<span class="pl-s"><span class="pl-pds">'</span>password<span class="pl-pds">'</span></span>) })</pre></div>
+
+<p>Note that this doesn't handle <code>Net::Ops::TransportUnavailable</code> which is raised when no transport can be used to open the session.
+To show the error and prevent your script from stopping:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-k">begin</span> <span class="pl-smi">@session</span>.open({ <span class="pl-c1">username:</span> <span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span></span>, <span class="pl-c1">password:</span> <span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span></span> })
+<span class="pl-k">rescue</span> <span class="pl-c1">Net</span>::<span class="pl-c1">Ops</span>::<span class="pl-c1">TransportUnavailable</span> =&gt; e
+  puts <span class="pl-s"><span class="pl-pds">"</span>There is an error: <span class="pl-pse">#{</span><span class="pl-s1">e.message</span><span class="pl-pse"><span class="pl-s1">}</span></span><span class="pl-pds">"</span></span>
+<span class="pl-k">end</span></pre></div>
+
+<h4>
+<a id="close-the-session" class="anchor" href="#close-the-session" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Close the session</h4>
+
+<p>It is generally not needed to close the session since the Ruby garbage collector will do it automatically.
+However if you need to, you can call <code>close</code>:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-smi">@session</span>.close</pre></div>
+
+<h3>
+<a id="sending-commands" class="anchor" href="#sending-commands" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Sending commands</h3>
+
+<p>Once the session is opened you can send commands to the device. Net::Ops offer three abstraction levels that are described below.</p>
+
+<h4>
+<a id="raw-commands" class="anchor" href="#raw-commands" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Raw commands</h4>
+
+<p>The basic way to send a command and get the output is the <code>run(command)</code> method.
+It send command (<code>String</code>) followed by a carriage return to the device, wait for the prompt, and return what happened between.
+For example, to get <code>show int status</code> output:</p>
+
+<div class="highlight highlight-source-ruby"><pre>puts <span class="pl-smi">@session</span>.run(<span class="pl-s"><span class="pl-pds">'</span>show int status<span class="pl-pds">'</span></span>)</pre></div>
+
+<p><code>run(command)</code> is pretty low-level but sometimes you will want to play directly with the transport.
+For example when the command ask for confirmation and doesn't return the prompt (like <code>reload</code>). In this case you can do something like this:</p>
+
+<div class="highlight highlight-source-ruby"><pre>transport <span class="pl-k">=</span> <span class="pl-smi">@session</span>.transport
+transport.cmd(<span class="pl-s"><span class="pl-pds">'</span>String<span class="pl-pds">'</span></span> =&gt; <span class="pl-s"><span class="pl-pds">'</span>reload<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>Match<span class="pl-pds">'</span></span> =&gt; <span class="pl-sr"><span class="pl-pds">/</span>.+confirm.+<span class="pl-pds">/</span></span>)
+transport.cmd(<span class="pl-s"><span class="pl-pds">'</span>yes<span class="pl-pds">'</span></span>)</pre></div>
+
+<p>To get the output with <code>transport.cmd</code> you need to pass a block:</p>
+
+<div class="highlight highlight-source-ruby"><pre>transport <span class="pl-k">=</span> <span class="pl-smi">@session</span>.transport
+transport.cmd(<span class="pl-s"><span class="pl-pds">'</span>show version<span class="pl-pds">'</span></span>) { |<span class="pl-smi">c</span>| puts c }</pre></div>
+
+<h4>
+<a id="basic-commands" class="anchor" href="#basic-commands" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Basic commands</h4>
+
+<p>To make your script easier to read, Net::Ops provides methods which are basically alias to Cisco commands.
+These are <code>get(item)</code>, <code>set(item, value)</code>, <code>enable(item)</code>, and <code>disable(item)</code>:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-smi">@session</span>.get <span class="pl-s"><span class="pl-pds">'</span>interfaces status<span class="pl-pds">'</span></span>
+<span class="pl-c"># send 'show interfaces status'</span>
+
+<span class="pl-smi">@session</span>.set <span class="pl-s"><span class="pl-pds">'</span>terminal length<span class="pl-pds">'</span></span>, <span class="pl-c1">0</span>
+<span class="pl-c"># send 'terminal length 0'</span>
+
+<span class="pl-smi">@session</span>.enable <span class="pl-s"><span class="pl-pds">'</span>ip http secure-server<span class="pl-pds">'</span></span>
+<span class="pl-c"># send 'ip http secure-server'</span>
+
+<span class="pl-smi">@session</span>.disable <span class="pl-s"><span class="pl-pds">'</span>spanning-tree bpduguard<span class="pl-pds">'</span></span>
+<span class="pl-c"># send 'no spanning-tree bpduguard'</span></pre></div>
+
+<p>These methods allow you to write a script that are easily readable, but you can do much more by combining them with the <a href="http://en.wikipedia.org/wiki/Domain-specific_language">DSL</a> that Net::Ops provides.</p>
+
+<h4>
+<a id="domain-specific-language" class="anchor" href="#domain-specific-language" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Domain-specific language</h4>
+
+<p>Currently the DSL is made of five methods:</p>
+
+<ul>
+<li><code>privileged(&amp;block)</code></li>
+<li><code>configuration(options = nil, &amp;block)</code></li>
+<li><code>interface(interface, &amp;block)</code></li>
+<li><code>interfaces(interfaces, &amp;block)</code></li>
+<li><code>lines(lines, &amp;block)</code></li>
+</ul>
+
+<p>They allow you to run commands in the specified context. Note that don't have to prefix methods with <code>@session</code> since the block is evaluated inside the session.</p>
+
+<p>Here's an example of how to use it:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-c"># Here we pass a block to be executed in the privileged mode.</span>
+<span class="pl-smi">@session</span>.privileged <span class="pl-k">do</span>
+
+  <span class="pl-c"># Let's get interfaces status.</span>
+  sw_interfaces <span class="pl-k">=</span> get <span class="pl-s"><span class="pl-pds">'</span>interfaces status<span class="pl-pds">'</span></span>
+
+  <span class="pl-c"># Show disabled interfaces</span>
+  nc_interfaces <span class="pl-k">=</span> sw_interfaces.select { |<span class="pl-smi">int</span>| int[<span class="pl-s"><span class="pl-pds">'</span>status<span class="pl-pds">'</span></span>] <span class="pl-k">==</span> <span class="pl-s"><span class="pl-pds">'</span>disabled<span class="pl-pds">'</span></span> }
+  puts nc_interfaces
+
+<span class="pl-k">end</span>
+
+<span class="pl-c"># Do some stuff in configuration mode.</span>
+<span class="pl-smi">@session</span>.configuration <span class="pl-k">do</span>
+
+  <span class="pl-c"># Add description to Gi1/0/2.</span>
+  <span class="pl-c"># Note the singular/plural in interface(s).</span>
+  <span class="pl-c"># interface accepts only String as an argument.</span>
+  <span class="pl-c"># interfaces accept Array, Regexp, and String.</span>
+  interface(<span class="pl-s"><span class="pl-pds">'</span>Gi1/0/2<span class="pl-pds">'</span></span>) <span class="pl-k">do</span>
+    set <span class="pl-s"><span class="pl-pds">'</span>description<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>I am Gi1/0/2<span class="pl-pds">'</span></span>
+  <span class="pl-k">end</span>
+
+  <span class="pl-c"># Disable bpduguard on all Gig interfaces.</span>
+  interfaces(<span class="pl-sr"><span class="pl-pds">/</span>Gi1<span class="pl-cce">\/</span>0<span class="pl-pds">/</span></span>) <span class="pl-k">do</span>
+    disable <span class="pl-s"><span class="pl-pds">'</span>spanning-tree bpduguard<span class="pl-pds">'</span></span>
+  <span class="pl-k">end</span>
+
+<span class="pl-k">end</span>
+
+<span class="pl-c"># Copy to startup-config</span>
+<span class="pl-smi">@session</span>.write!
+
+<span class="pl-c"># Do something else in configuration mode</span>
+<span class="pl-c"># but automatically write this time.</span>
+<span class="pl-smi">@session</span>.configuration(<span class="pl-c1">:enforce_save</span>) <span class="pl-k">do</span>
+  disable <span class="pl-s"><span class="pl-pds">'</span>ip http secure-server<span class="pl-pds">'</span></span>
+<span class="pl-k">end</span></pre></div>
+
+<h4>
+<a id="other-commands" class="anchor" href="#other-commands" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Other commands</h4>
+
+<ul>
+<li><code>write!</code></li>
+<li><code>zeroize(item)</code></li>
+<li><code>generate(item, options)</code></li>
+</ul>
+
+<p>Example :</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-c"># Delete the crypto key</span>
+<span class="pl-smi">@session</span>.zeroize <span class="pl-s"><span class="pl-pds">'</span>crypto key<span class="pl-pds">'</span></span>
+
+<span class="pl-c"># Regenerate it</span>
+<span class="pl-smi">@session</span>.generate <span class="pl-s"><span class="pl-pds">'</span>crypto key<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>rsa general-keys modulus 2048<span class="pl-pds">'</span></span>
+
+<span class="pl-c"># Save running-config</span>
+<span class="pl-smi">@session</span>.write!</pre></div>
+
+<h2>
+<a id="tasks" class="anchor" href="#tasks" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tasks</h2>
+
+<p>Net::Ops allow to define tasks that perform a specific action and run it on several devices in parallel while handling errors and providing easy logging.</p>
+
+<h3>
+<a id="definition" class="anchor" href="#definition" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Definition</h3>
+
+<p>To define a task you should create a new class that inherit from <code>Task</code> and define <code>initialize</code> and <code>work</code> methods:</p>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-c"># my_task.rb</span>
+<span class="pl-k">class</span> <span class="pl-en">MyTask<span class="pl-e"> &lt; Net::Ops::Task</span></span>
+
+  <span class="pl-k">def</span> <span class="pl-en">initialize</span>(<span class="pl-smi">id</span>)
+    <span class="pl-c"># Setup your stuff.</span>
+    <span class="pl-k">super</span>(id)
+  <span class="pl-k">end</span>
+
+  <span class="pl-k">def</span> <span class="pl-en">work</span>
+    <span class="pl-c"># Place your logic here.</span>
+  <span class="pl-k">end</span>
+
+<span class="pl-k">end</span></pre></div>
+
+<p><code>id</code> is an identifier that should be unique for each instance of your task. You can use whatever you want, for example, the hostname of the device you are currently working on.</p>
+
+<h3>
+<a id="execution" class="anchor" href="#execution" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Execution</h3>
+
+<p>To run a task you can basically instance it and call work:</p>
+
+<div class="highlight highlight-source-ruby"><pre>t <span class="pl-k">=</span> <span class="pl-c1">MyTask</span>.<span class="pl-k">new</span>(<span class="pl-s"><span class="pl-pds">'</span>task1<span class="pl-pds">'</span></span>)
+t.work</pre></div>
+
+<p>However, you may want to run several tasks in parallel to speed up things. You can do that thanks to <a href="https://github.com/meh/ruby-thread">thread/pool</a>:</p>
+
+<div class="highlight highlight-source-ruby"><pre>hosts <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">%w(</span> host1 host2 host3 <span class="pl-pds">)</span></span>
+max_conn <span class="pl-k">=</span> <span class="pl-c1">2</span>
+
+pool <span class="pl-k">=</span> <span class="pl-c1">Thread</span>.pool(max_conn)
+
+hosts.each <span class="pl-k">do </span>|<span class="pl-smi">hosts</span>|
+  pool.process { <span class="pl-c1">MyTask</span>.<span class="pl-k">new</span>(host).work }
+<span class="pl-k">end</span>
+
+pool.shutdown</pre></div>
+
+<h2>
+<a id="transports" class="anchor" href="#transports" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Transports</h2>
+
+<h3>
+<a id="built-in" class="anchor" href="#built-in" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Built-in</h3>
+
+<h3>
+<a id="custom" class="anchor" href="#custom" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Custom</h3>
+
+<div class="highlight highlight-source-ruby"><pre><span class="pl-k">class</span> <span class="pl-en">MyCustomTransport</span>
+
+  <span class="pl-k">def</span> <span class="pl-en">self.open</span>(<span class="pl-smi">host</span>, <span class="pl-smi">options</span>, <span class="pl-smi">credentials</span>)
+    session <span class="pl-k">=</span> <span class="pl-c"># Do what you need to get a session to the host.</span>
+    <span class="pl-k">return</span> session
+  <span class="pl-k">end</span>
+
+<span class="pl-k">end</span></pre></div>
+
+<h2>
+<a id="documentation" class="anchor" href="#documentation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>You can get the documentation via gem with <code>gem server</code>.
+Or generate it manually with <code>rake doc</code>.</p>
+
+<h2>
+<a id="todo---ideas" class="anchor" href="#todo---ideas" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Todo - Ideas</h2>
+
+<p>See <a href="https://github.com/maxmouchet/net-ops/issues?state=open">issues</a>.</p>
+
+<h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contributing</h2>
+
+<ol>
+<li>Fork it</li>
+<li>Create your feature branch (<code>git checkout -b my-new-feature</code>)</li>
+<li>Commit your changes (<code>git commit -am 'Add some feature'</code>)</li>
+<li>Push to the branch (<code>git push origin my-new-feature</code>)</li>
+<li>Create new Pull Request</li>
+</ol>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/maxmouchet/net-ops">Net::Ops</a> is maintained by <a href="https://github.com/maxmouchet">maxmouchet</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
